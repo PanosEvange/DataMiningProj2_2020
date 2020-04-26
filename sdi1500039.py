@@ -31,7 +31,12 @@ from sklearn.model_selection import train_test_split
 # visualization
 from wordcloud import WordCloud
 from IPython.display import Image
-# endregion
+from IPython.display import display
+
+# for data exploration
+import pandas as pd
+import os
+import numpy as np
 
 # ## __Dataset Preprocessing__
 
@@ -39,11 +44,47 @@ from IPython.display import Image
 
 # region
 
-# to fill
+pd.set_option('display.max_columns', 300)
+pd.set_option('display.max_rows', 300)
 
+myCategoriesFolder = ['business','entertainment','politics', 'sport', 'tech']
+dataPathDir = './fulltext/data/'
+
+myDataSetDf = pd.DataFrame(columns=['ID', 'TITLE',  'CONTENT',  'CATEGORY'])
+id_count = 0
+
+for category in myCategoriesFolder:
+    # print('Folder ' + category + ':')
+    specificPath = dataPathDir + category + '/'
+
+    # list of dataframes of this category
+    categoryFilesDfList = []
+
+    # find the column's names of each csv
+    for fileName in os.listdir(specificPath):
+        # we need to check only .txt files
+        if fileName.endswith(".txt"):
+            # print(id_count, ' ', os.path.join(specificPath, fileName))
+            id_count += 1
+            # thisTxt = pd.read_csv(os.path.join(specificPath, fileName), dtype='unicode')
+            thisTxt = open(os.path.join(specificPath, fileName),"r")
+            thisTxtTitle = thisTxt.readline()
+            # get rid of '\n' on the end of title line
+            thisTxtTitle = thisTxtTitle.replace('\n', '')
+            thisTxtContent = thisTxt.readlines()
+            # https://stackoverflow.com/questions/1157106/remove-all-occurrences-of-a-value-from-a-list
+            # get rid of empty lines '\n'
+            thisTxtContent = list(filter(lambda a: a != '\n', thisTxtContent))
+            # get rid of '\n' on the end of each line 
+            thisTxtContent = [period.replace('\n', '') for period in thisTxtContent]
+            # convert list of lines into a single string line
+            thisTxtContent = ' '.join(thisTxtContent)
+            myDataSetDf = myDataSetDf.append({'ID': id_count, 'TITLE': thisTxtTitle, 'CONTENT': thisTxtContent, 'CATEGORY': category.upper()}, ignore_index=True)
+            thisTxt.close() 
+display(myDataSetDf)
 # endregion
 
-dataSetDf = pd.read_csv("testData.tsv", sep='\t')
+# myDataSetDf = pd.read_csv("testData.tsv", sep='\t')
 
 # ## __Make wordcloud for each category__
 
@@ -112,7 +153,7 @@ def makeWordCloud(myText, saveLocationPath, myMaxWords=100, myMask=None, myStopW
 # trainDataSet, testDataSet = train_test_split(dataSetDf, test_size=0.2, stratify=dataSetDf['CATEGORY'])
 
 # to be removed and use the above
-trainDataSet, testDataSet = train_test_split(dataSetDf, test_size=0.3, stratify=dataSetDf['CATEGORY']) 
+trainDataSet, testDataSet = train_test_split(myDataSetDf, test_size=0.3, stratify=myDataSetDf['CATEGORY']) 
 # to be removed and use the above
 
 # reset index
@@ -131,7 +172,7 @@ testDataSet = testDataSet.drop('CATEGORY', axis=1)
 testDataSet.to_csv('test_set.tsv', sep = '\t')
 # endregion
 
-dataSetDf
+myDataSetDf
 
 trainDataSet
 
