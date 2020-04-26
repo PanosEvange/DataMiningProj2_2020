@@ -34,6 +34,12 @@ from IPython.display import Image
 
 # classification
 from sklearn.model_selection import KFold
+from IPython.display import display
+
+# for data exploration
+import os
+import numpy as np
+
 # endregion
 
 # ## __Dataset Preprocessing__
@@ -41,12 +47,44 @@ from sklearn.model_selection import KFold
 # - ### *Make tsv files from all the txt files*
 
 # region
+myCategoriesFolder = ['business','entertainment','politics', 'sport', 'tech']
+dataPathDir = './fulltext/data/'
 
-# to fill
+myDataSetDf = pd.DataFrame(columns=['ID', 'TITLE',  'CONTENT',  'CATEGORY'])
+id_count = 0
 
+for category in myCategoriesFolder:
+    specificPath = dataPathDir + category + '/'
+
+    # find the column's names of each csv
+    for fileName in os.listdir(specificPath):
+        # we need to check only .txt files
+        if fileName.endswith(".txt"):
+            
+            thisTxt = open(os.path.join(specificPath, fileName),"r")
+            thisTxtTitle = thisTxt.readline()
+
+            # get rid of '\n' on the end of title line
+            thisTxtTitle = thisTxtTitle.replace('\n', '')
+
+            thisTxtContent = thisTxt.readlines()
+
+            # get rid of empty lines '\n'
+            thisTxtContent = list(filter(lambda a: a != '\n', thisTxtContent))
+
+            # get rid of '\n' on the end of each line 
+            thisTxtContent = [period.replace('\n', '') for period in thisTxtContent]
+
+            # convert list of lines into a single string line
+            thisTxtContent = ' '.join(thisTxtContent)
+
+            myDataSetDf = myDataSetDf.append({'ID': id_count, 'TITLE': thisTxtTitle, 'CONTENT': thisTxtContent, 'CATEGORY': category.upper()}, ignore_index=True)
+            thisTxt.close()
+
+            id_count += 1
+
+display(myDataSetDf)
 # endregion
-
-dataSetDf = pd.read_csv("testData.tsv", sep='\t')
 
 # ## __Make wordcloud for each category__
 
@@ -111,12 +149,7 @@ def makeWordCloud(myText, saveLocationPath, myMaxWords=100, myMask=None, myStopW
 # - ### *Split DataSet into TrainData and TestData*
 
 # region
-
-# trainDataSet, testDataSet = train_test_split(dataSetDf, test_size=0.2, stratify=dataSetDf['CATEGORY'])
-
-# to be removed and use the above
-trainDataSet, testDataSet = train_test_split(dataSetDf, test_size=0.3, stratify=dataSetDf['CATEGORY']) 
-# to be removed and use the above
+trainDataSet, testDataSet = train_test_split(myDataSetDf, test_size=0.2, stratify=myDataSetDf['CATEGORY'])
 
 # reset index
 trainDataSet.reset_index(drop=True, inplace=True)
@@ -134,7 +167,7 @@ testDataSet = testDataSet.drop('CATEGORY', axis=1)
 testDataSet.to_csv('test_set.tsv', sep = '\t')
 # endregion
 
-dataSetDf
+myDataSetDf
 
 trainDataSet
 
