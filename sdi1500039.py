@@ -31,6 +31,9 @@ from sklearn.model_selection import train_test_split
 # visualization
 from wordcloud import WordCloud
 from IPython.display import Image
+
+# classification
+from sklearn.model_selection import KFold
 # endregion
 
 # ## __Dataset Preprocessing__
@@ -138,3 +141,8 @@ trainDataSet
 testDataSet
 
 testDataSetCategories
+
+# use 10-fold cross validation
+kf = KFold(n_splits=10)
+
+kf
