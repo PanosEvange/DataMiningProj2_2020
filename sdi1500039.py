@@ -92,7 +92,8 @@ def makeWordCloud(myText, saveLocationPath, myMaxWords=100, myMask=None, myStopW
     '''Default function for generating wordcloud'''
 
     wc = WordCloud(background_color="white", mask=myMask, max_words=myMaxWords,
-                   stopwords=myStopWords, contour_width=3, contour_color='steelblue')
+                   stopwords=myStopWords, contour_width=3, contour_color='steelblue',
+                   width=600, height=600)
 
     # generate word cloud
     wc.generate(myText)
@@ -103,12 +104,21 @@ def makeWordCloud(myText, saveLocationPath, myMaxWords=100, myMask=None, myStopW
 
     return saveLocationPath
 
+def columnToText(myDfColumn):
+    wholeColumnText = ''
+
+    for text in myDfColumn:
+        wholeColumnText = wholeColumnText + ' ' + text
+
+    return wholeColumnText
 
 # - ### *Business Wordcloud*
 
 # region
 
-# to fill
+makeWordCloud(saveLocationPath="businessWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "BUSINESS"]['CONTENT']))
+
+Image('businessWordCloud.png')
 
 # endregion
 
