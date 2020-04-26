@@ -23,9 +23,15 @@
 
 # ### Do all the necessary imports for this notebook
 
+# region
+# data processing
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
 # visualization
 from wordcloud import WordCloud
 from IPython.display import Image
+# endregion
 
 # ## __Dataset Preprocessing__
 
@@ -36,6 +42,8 @@ from IPython.display import Image
 # to fill
 
 # endregion
+
+dataSetDf = pd.read_csv("testData.tsv", sep='\t')
 
 # ## __Make wordcloud for each category__
 
@@ -53,6 +61,7 @@ def makeWordCloud(myText, saveLocationPath, myMaxWords=100, myMask=None, myStopW
     wc.to_file(saveLocationPath)
 
     return saveLocationPath
+
 
 # - ### *Business Wordcloud*
 
@@ -93,3 +102,39 @@ def makeWordCloud(myText, saveLocationPath, myMaxWords=100, myMask=None, myStopW
 # to fill
 
 # endregion
+
+# ## __Classification__
+
+# - ### *Split DataSet into TrainData and TestData*
+
+# region
+
+# trainDataSet, testDataSet = train_test_split(dataSetDf, test_size=0.2, stratify=dataSetDf['CATEGORY'])
+
+# to be removed and use the above
+trainDataSet, testDataSet = train_test_split(dataSetDf, test_size=0.3, stratify=dataSetDf['CATEGORY']) 
+# to be removed and use the above
+
+# reset index
+trainDataSet.reset_index(drop=True, inplace=True)
+testDataSet.reset_index(drop=True, inplace=True)
+
+# save to tsv files
+trainDataSet.to_csv('train_set.tsv', sep = '\t')
+
+# save test_set categories
+testDataSetCategories = testDataSet[['CATEGORY']].copy()
+
+testDataSetCategories.to_csv('test_set_categories.tsv', sep = '\t')
+
+testDataSet = testDataSet.drop('CATEGORY', axis=1)
+testDataSet.to_csv('test_set.tsv', sep = '\t')
+# endregion
+
+dataSetDf
+
+trainDataSet
+
+testDataSet
+
+testDataSetCategories
