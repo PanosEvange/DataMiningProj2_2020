@@ -27,6 +27,7 @@
 # data processing
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
 # visualization
 from wordcloud import WordCloud
@@ -115,8 +116,10 @@ def columnToText(myDfColumn):
 # - ### *Business Wordcloud*
 
 # region
-
-makeWordCloud(saveLocationPath="businessWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "BUSINESS"]['CONTENT']))
+myAdditionalStopWords = ['say','said', 'new', 'need', 'year']
+stopWords = ENGLISH_STOP_WORDS
+stopWords = (stopWords.union(myAdditionalStopWords)).union(ENGLISH_STOP_WORDS)
+makeWordCloud(saveLocationPath="businessWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "BUSINESS"]['CONTENT']), myStopWords=stopWords)
 
 Image('businessWordCloud.png')
 
@@ -126,7 +129,12 @@ Image('businessWordCloud.png')
 
 # region
 
-# to fill
+myAdditionalStopWords = ['say','said', 'new', 'need', 'year']
+stopWords = ENGLISH_STOP_WORDS
+stopWords = (stopWords.union(myAdditionalStopWords)).union(ENGLISH_STOP_WORDS)
+makeWordCloud(saveLocationPath="entertainmentWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "ENTERTAINMENT"]['CONTENT']), myStopWords=stopWords)
+
+Image('entertainmentWordCloud.png')
 
 # endregion
 
@@ -134,7 +142,12 @@ Image('businessWordCloud.png')
 
 # region
 
-# to fill
+myAdditionalStopWords = ['say','said', 'new', 'need', 'year']
+stopWords = ENGLISH_STOP_WORDS
+stopWords = (stopWords.union(myAdditionalStopWords)).union(ENGLISH_STOP_WORDS)
+makeWordCloud(saveLocationPath="politicsWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "POLITICS"]['CONTENT']), myStopWords=stopWords)
+
+Image('politicsWordCloud.png')
 
 # endregion
 
@@ -142,7 +155,12 @@ Image('businessWordCloud.png')
 
 # region
 
-# to fill
+myAdditionalStopWords = ['say','said', 'new', 'need', 'year']
+stopWords = ENGLISH_STOP_WORDS
+stopWords = (stopWords.union(myAdditionalStopWords)).union(ENGLISH_STOP_WORDS)
+makeWordCloud(saveLocationPath="sportWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "SPORT"]['CONTENT']), myStopWords=stopWords)
+
+Image('sportWordCloud.png')
 
 # endregion
 
@@ -150,7 +168,12 @@ Image('businessWordCloud.png')
 
 # region
 
-# to fill
+myAdditionalStopWords = ['say','said', 'new', 'need', 'year']
+stopWords = ENGLISH_STOP_WORDS
+stopWords = (stopWords.union(myAdditionalStopWords)).union(ENGLISH_STOP_WORDS)
+makeWordCloud(saveLocationPath="techWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "TECH"]['CONTENT']), myStopWords=stopWords)
+
+Image('techWordCloud.png')
 
 # endregion
 
