@@ -26,21 +26,26 @@
 # region
 # data processing
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+
 
 # visualization
 from wordcloud import WordCloud
 from IPython.display import Image
+from IPython.display import display
 
 # classification
 from sklearn.model_selection import KFold
-from IPython.display import display
+from sklearn import svm, preprocessing
+from sklearn.metrics import classification_report, accuracy_score
+
+# vectorization
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
 # for data exploration
 import os
 import numpy as np
-
 # endregion
 
 # ## __Dataset Preprocessing__
@@ -122,7 +127,6 @@ stopWords = (stopWords.union(myAdditionalStopWords)).union(ENGLISH_STOP_WORDS)
 makeWordCloud(saveLocationPath="businessWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "BUSINESS"]['CONTENT']), myStopWords=stopWords)
 
 Image('businessWordCloud.png')
-
 # endregion
 
 # - ### *Entertainment Wordcloud*
@@ -179,6 +183,71 @@ Image('techWordCloud.png')
 
 # ## __Classification__
 
+#   - #### Classification using SVM classifier
+
+def SvmClassification(trainX, trainY, testX, testY, labelEncoder):
+    """
+    Classify the text using the SVM classifier of scikit-learn    
+    """
+    
+    clf = svm.SVC(kernel='linear', C=1, probability=True)
+
+    # fit train set
+    clf.fit(trainX, trainY)
+    
+    # use 10-fold Cross Validation
+
+    print('----Report for 10-fold Cross Validation----')
+
+    # skf = StratifiedKFold(n_splits=10)
+    # precisions = cross_val_score(clf, trainX, trainY, cv=skf, scoring='precision_weighted')
+
+    precisions = cross_val_score(clf, trainX, trainY, cv=10, scoring='precision_weighted')
+    print ('Precision ', np.mean(precisions))
+
+    recalls = cross_val_score(clf, trainX, trainY, cv=10, scoring='recall_weighted')
+    print ('Recalls ', np.mean(recalls))
+
+    f1s = cross_val_score(clf, trainX, trainY, cv=10, scoring='f1_weighted')
+    print ('F-Measure ', np.mean(f1s))
+
+    scores = cross_val_score(clf, trainX, trainY, cv=10)
+    print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+
+    # Predict test set
+    predY = clf.predict(testX)
+
+    # Classification_report
+    print('----Report for predictions on test dataset----')
+    print(classification_report(testY, predY, target_names=list(labelEncoder.classes_)))
+
+    print('----ROC plot for predictions on test dataset----')
+    return accuracy_score(testY, predY)
+
+#   - #### Classification using Random Forests classifier
+
+# region
+
+# to fill
+
+# endregion
+
+#   - #### Classification using Naive Bayes classifier
+
+# region
+
+# to fill
+
+# endregion
+
+#   - #### Classification using K-Nearest Neighbor classifier
+
+# region
+
+# to fill
+
+# endregion
+
 # - ### *Split DataSet into TrainData and TestData*
 
 # region
@@ -200,15 +269,45 @@ testDataSet = testDataSet.drop('CATEGORY', axis=1)
 testDataSet.to_csv('test_set.tsv', sep = '\t')
 # endregion
 
-myDataSetDf
+# Prepare train and test data that we will need below
 
-trainDataSet
+# region
+# build label encoder for categories
+le = preprocessing.LabelEncoder()
+le.fit(trainDataSet["CATEGORY"])
 
-testDataSet
+# transform categories into numbers
+trainY = le.transform(trainDataSet["CATEGORY"])
+testY = le.transform(testDataSetCategories["CATEGORY"])
 
-testDataSetCategories
+accuracyDict = dict()
+# endregion
 
-# use 10-fold cross validation
-kf = KFold(n_splits=10)
+# ## __Vectorization__
 
-kf
+# Let's do classification using 2 different ways of vectorization
+
+#   - #### Bag-of-words vectorization
+
+# region
+bowVectorizer = CountVectorizer(max_features=1000)
+
+trainX = bowVectorizer.fit_transform(trainDataSet['CONTENT'])
+testX = bowVectorizer.transform(testDataSet['CONTENT'])
+
+print('-------------SVM Classification with BOW Vectorization-------------')
+accuracyDict["BOW-SVM"] = SvmClassification(trainX, trainY, testX, testY, le)
+#accuracyDict["BOW-SVM"] = SvmClassification(trainX, trainY, trainX, trainY, le)
+# endregion
+
+#   - #### Tf-idf vectorization
+
+# region
+tfIdfVectorizer = TfidfVectorizer(max_features=1000)
+
+trainX = tfIdfVectorizer.fit_transform(trainDataSet['CONTENT'])
+testX = tfIdfVectorizer.transform(testDataSet['CONTENT'])
+
+print('-------------SVM Classification with TfIdf Vectorization-------------')
+accuracyDict["TfIdf-SVM"] = SvmClassification(trainX, trainY, testX, testY, le)
+# endregion
