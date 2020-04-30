@@ -39,6 +39,7 @@ from sklearn.model_selection import KFold
 from sklearn import svm, preprocessing
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import GaussianNB
 
 # vectorization
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
@@ -164,6 +165,26 @@ Image('techWordCloud.png')
 
 # ## __Classification__
 
+def scoresReportCv(clf, trainX, trainY):
+    """
+    Printing scores using cross_val_score    
+    """
+
+    print('----Report for 10-fold Cross Validation----')
+
+    precisions = cross_val_score(clf, trainX, trainY, cv=10, scoring='precision_weighted')
+    print ('Precision \t %0.2f' % (np.mean(precisions)))
+
+    recalls = cross_val_score(clf, trainX, trainY, cv=10, scoring='recall_weighted')
+    print ('Recalls \t %0.2f' % (np.mean(recalls)))
+
+    f1s = cross_val_score(clf, trainX, trainY, cv=10, scoring='f1_weighted')
+    print ('F-Measure \t %0.2f' % (np.mean(f1s)))
+
+    scores = cross_val_score(clf, trainX, trainY, cv=10)
+    print("Accuracy: \t %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+
+
 #   - #### Classification using SVM classifier
 
 def SvmClassification(trainX, trainY, testX, testY, labelEncoder):
@@ -177,23 +198,7 @@ def SvmClassification(trainX, trainY, testX, testY, labelEncoder):
     clf.fit(trainX, trainY)
     
     # use 10-fold Cross Validation
-
-    print('----Report for 10-fold Cross Validation----')
-
-    # skf = StratifiedKFold(n_splits=10)
-    # precisions = cross_val_score(clf, trainX, trainY, cv=skf, scoring='precision_weighted')
-
-    precisions = cross_val_score(clf, trainX, trainY, cv=10, scoring='precision_weighted')
-    print ('Precision ', np.mean(precisions))
-
-    recalls = cross_val_score(clf, trainX, trainY, cv=10, scoring='recall_weighted')
-    print ('Recalls ', np.mean(recalls))
-
-    f1s = cross_val_score(clf, trainX, trainY, cv=10, scoring='f1_weighted')
-    print ('F-Measure ', np.mean(f1s))
-
-    scores = cross_val_score(clf, trainX, trainY, cv=10)
-    print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+    scoresReportCv(clf, trainX, trainY)
 
     # Predict test set
     predY = clf.predict(testX)
@@ -213,25 +218,12 @@ def RandomForestClassification(trainX, trainY, testX, testY, labelEncoder):
     """
     
     clf = RandomForestClassifier()
-
+        
     # fit train set
     clf.fit(trainX, trainY)
     
     # use 10-fold Cross Validation
-
-    print('----Report for 10-fold Cross Validation----')
-
-    precisions = cross_val_score(clf, trainX, trainY, cv=10, scoring='precision_weighted')
-    print ('Precision ', np.mean(precisions))
-
-    recalls = cross_val_score(clf, trainX, trainY, cv=10, scoring='recall_weighted')
-    print ('Recalls ', np.mean(recalls))
-
-    f1s = cross_val_score(clf, trainX, trainY, cv=10, scoring='f1_weighted')
-    print ('F-Measure ', np.mean(f1s))
-
-    scores = cross_val_score(clf, trainX, trainY, cv=10)
-    print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+    scoresReportCv(clf, trainX, trainY)
 
     # Predict test set
     predY = clf.predict(testX)
@@ -245,11 +237,31 @@ def RandomForestClassification(trainX, trainY, testX, testY, labelEncoder):
 
 #   - #### Classification using Naive Bayes classifier
 
-# region
+def NaiveBayesClassification(trainX, trainY, testX, testY, labelEncoder):
+    """
+    Classify the text using the Naive Bayes classifier of scikit-learn    
+    """
+    
+    clf = GaussianNB()
+    
+    trainX = trainX.toarray()
+    
+    # fit train set
+    clf.fit(trainX, trainY)
+    
+    # use 10-fold Cross Validation
+    scoresReportCv(clf, trainX, trainY)
 
-# to fill
+    # Predict test set
+    testX = testX.toarray()
+    predY = clf.predict(testX)
 
-# endregion
+    # Classification_report
+    print('\n----Report for predictions on test dataset----')
+    print(classification_report(testY, predY, target_names=list(labelEncoder.classes_)))
+
+    print('\n----ROC plot for predictions on test dataset----')
+    return accuracy_score(testY, predY)
 
 #   - #### Classification using K-Nearest Neighbor classifier
 
@@ -311,6 +323,9 @@ accuracyDict["BOW-SVM"] = SvmClassification(trainX, trainY, testX, testY, le)
 
 print('\n-------------Random Forests Classification with BOW Vectorization-------------')
 accuracyDict["BOW-RandomForests"] = RandomForestClassification(trainX, trainY, testX, testY, le)
+
+print('\n-------------Naive Bayes Classification with BOW Vectorization-------------')
+accuracyDict["BOW-NB"] = NaiveBayesClassification(trainX, trainY, testX, testY, le)
 # endregion
 
 #   - #### Tf-idf vectorization
@@ -326,4 +341,7 @@ accuracyDict["TfIdf-SVM"] = SvmClassification(trainX, trainY, testX, testY, le)
 
 print('\n-------------Random Forests Classification with TfIdf Vectorization-------------')
 accuracyDict["TfIdf-RandomForests"] = RandomForestClassification(trainX, trainY, testX, testY, le)
+
+print('\n-------------Naive Bayes Classification with TfIdf Vectorization-------------')
+accuracyDict["TfIdf-NB"] = NaiveBayesClassification(trainX, trainY, testX, testY, le)
 # endregion
