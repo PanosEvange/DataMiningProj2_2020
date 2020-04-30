@@ -117,12 +117,13 @@ def columnToText(myDfColumn):
 
     return wholeColumnText
 
+stopWords = ENGLISH_STOP_WORDS
+myAdditionalStopWords = ['say','said', 'new', 'need', 'year']
+stopWords = (stopWords.union(myAdditionalStopWords))
+
 # - ### *Business Wordcloud*
 
 # region
-myAdditionalStopWords = ['say','said', 'new', 'need', 'year']
-stopWords = ENGLISH_STOP_WORDS
-stopWords = (stopWords.union(myAdditionalStopWords)).union(ENGLISH_STOP_WORDS)
 makeWordCloud(saveLocationPath="businessWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "BUSINESS"]['CONTENT']), myStopWords=stopWords)
 
 Image('businessWordCloud.png')
@@ -131,53 +132,33 @@ Image('businessWordCloud.png')
 # - ### *Entertainment Wordcloud*
 
 # region
-
-myAdditionalStopWords = ['say','said', 'new', 'need', 'year']
-stopWords = ENGLISH_STOP_WORDS
-stopWords = (stopWords.union(myAdditionalStopWords)).union(ENGLISH_STOP_WORDS)
 makeWordCloud(saveLocationPath="entertainmentWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "ENTERTAINMENT"]['CONTENT']), myStopWords=stopWords)
 
 Image('entertainmentWordCloud.png')
-
 # endregion
 
 # - ### *Politics Wordcloud*
 
 # region
-
-myAdditionalStopWords = ['say','said', 'new', 'need', 'year']
-stopWords = ENGLISH_STOP_WORDS
-stopWords = (stopWords.union(myAdditionalStopWords)).union(ENGLISH_STOP_WORDS)
 makeWordCloud(saveLocationPath="politicsWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "POLITICS"]['CONTENT']), myStopWords=stopWords)
 
 Image('politicsWordCloud.png')
-
 # endregion
 
 # - ### *Sport Wordcloud*
 
 # region
-
-myAdditionalStopWords = ['say','said', 'new', 'need', 'year']
-stopWords = ENGLISH_STOP_WORDS
-stopWords = (stopWords.union(myAdditionalStopWords)).union(ENGLISH_STOP_WORDS)
 makeWordCloud(saveLocationPath="sportWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "SPORT"]['CONTENT']), myStopWords=stopWords)
 
 Image('sportWordCloud.png')
-
 # endregion
 
 # - ### *Tech Wordcloud*
 
 # region
-
-myAdditionalStopWords = ['say','said', 'new', 'need', 'year']
-stopWords = ENGLISH_STOP_WORDS
-stopWords = (stopWords.union(myAdditionalStopWords)).union(ENGLISH_STOP_WORDS)
 makeWordCloud(saveLocationPath="techWordCloud.png", myText=columnToText(myDataSetDf[myDataSetDf['CATEGORY'] == "TECH"]['CONTENT']), myStopWords=stopWords)
 
 Image('techWordCloud.png')
-
 # endregion
 
 # ## __Classification__
