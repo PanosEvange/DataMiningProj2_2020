@@ -38,6 +38,7 @@ from IPython.display import display
 from sklearn.model_selection import KFold
 from sklearn import svm, preprocessing
 from sklearn.metrics import classification_report, accuracy_score
+from sklearn.ensemble import RandomForestClassifier
 
 # vectorization
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
@@ -198,19 +199,49 @@ def SvmClassification(trainX, trainY, testX, testY, labelEncoder):
     predY = clf.predict(testX)
 
     # Classification_report
-    print('----Report for predictions on test dataset----')
+    print('\n----Report for predictions on test dataset----')
     print(classification_report(testY, predY, target_names=list(labelEncoder.classes_)))
 
-    print('----ROC plot for predictions on test dataset----')
+    print('\n----ROC plot for predictions on test dataset----')
     return accuracy_score(testY, predY)
 
 #   - #### Classification using Random Forests classifier
 
-# region
+def RandomForestClassification(trainX, trainY, testX, testY, labelEncoder):
+    """
+    Classify the text using the Random Forest classifier of scikit-learn    
+    """
+    
+    clf = RandomForestClassifier()
 
-# to fill
+    # fit train set
+    clf.fit(trainX, trainY)
+    
+    # use 10-fold Cross Validation
 
-# endregion
+    print('----Report for 10-fold Cross Validation----')
+
+    precisions = cross_val_score(clf, trainX, trainY, cv=10, scoring='precision_weighted')
+    print ('Precision ', np.mean(precisions))
+
+    recalls = cross_val_score(clf, trainX, trainY, cv=10, scoring='recall_weighted')
+    print ('Recalls ', np.mean(recalls))
+
+    f1s = cross_val_score(clf, trainX, trainY, cv=10, scoring='f1_weighted')
+    print ('F-Measure ', np.mean(f1s))
+
+    scores = cross_val_score(clf, trainX, trainY, cv=10)
+    print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+
+    # Predict test set
+    predY = clf.predict(testX)
+
+    # Classification_report
+    print('\n----Report for predictions on test dataset----')
+    print(classification_report(testY, predY, target_names=list(labelEncoder.classes_)))
+
+    print('\n----ROC plot for predictions on test dataset----')
+    return accuracy_score(testY, predY)
 
 #   - #### Classification using Naive Bayes classifier
 
@@ -277,7 +308,9 @@ testX = bowVectorizer.transform(testDataSet['CONTENT'])
 
 print('-------------SVM Classification with BOW Vectorization-------------')
 accuracyDict["BOW-SVM"] = SvmClassification(trainX, trainY, testX, testY, le)
-#accuracyDict["BOW-SVM"] = SvmClassification(trainX, trainY, trainX, trainY, le)
+
+print('\n-------------Random Forests Classification with BOW Vectorization-------------')
+accuracyDict["BOW-RandomForests"] = RandomForestClassification(trainX, trainY, testX, testY, le)
 # endregion
 
 #   - #### Tf-idf vectorization
@@ -290,4 +323,7 @@ testX = tfIdfVectorizer.transform(testDataSet['CONTENT'])
 
 print('-------------SVM Classification with TfIdf Vectorization-------------')
 accuracyDict["TfIdf-SVM"] = SvmClassification(trainX, trainY, testX, testY, le)
+
+print('\n-------------Random Forests Classification with TfIdf Vectorization-------------')
+accuracyDict["TfIdf-RandomForests"] = RandomForestClassification(trainX, trainY, testX, testY, le)
 # endregion
