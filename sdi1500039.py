@@ -33,6 +33,7 @@ from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 from wordcloud import WordCloud
 from IPython.display import Image
 from IPython.display import display
+from itertools import cycle
 
 # classification
 from sklearn.model_selection import KFold
@@ -40,6 +41,10 @@ from sklearn import svm, preprocessing
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.preprocessing import label_binarize
 
 # vectorization
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
@@ -184,6 +189,68 @@ def scoresReportCv(clf, trainX, trainY):
     scores = cross_val_score(clf, trainX, trainY, cv=10)
     print("Accuracy: \t %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
 
+def makeRocPlot(labelTest, predictions, labelEncoder):
+    # Binarize the output
+    labelsAsNumber = [i for i in range(0,len(labelEncoder.classes_))]
+    labelTest = label_binarize(labelTest, classes=labelsAsNumber)
+    n_classes = labelTest.shape[1]
+
+    # Compute ROC curve and ROC area for each class
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+
+    for i in range(n_classes):
+        fpr[i], tpr[i], _ = roc_curve(labelTest[:, i], predictions[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
+    
+    # Compute micro-average ROC curve and ROC area
+    fpr["micro"], tpr["micro"], _ = roc_curve(labelTest.ravel(), predictions.ravel())
+    roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+
+    # First aggregate all false positive rates
+    all_fpr = np.unique(np.concatenate([fpr[i] for i in range(n_classes)]))
+
+    # Then interpolate all ROC curves at this points
+    mean_tpr = np.zeros_like(all_fpr)
+    for i in range(n_classes):
+        mean_tpr += np.interp(all_fpr, fpr[i], tpr[i])
+
+    # Finally average it and compute AUC
+    mean_tpr /= n_classes
+
+    fpr["macro"] = all_fpr
+    tpr["macro"] = mean_tpr
+    roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
+
+    lw = 2
+
+    # Plot all ROC curves
+    plt.figure(figsize=(12, 12))
+    plt.plot(fpr["micro"], tpr["micro"],
+            label='micro-average ROC curve (area = {0:0.2f})'
+                ''.format(roc_auc["micro"]),
+            color='deeppink', linestyle=':', linewidth=4)
+
+    plt.plot(fpr["macro"], tpr["macro"],
+            label='macro-average ROC curve (area = {0:0.2f})'
+                ''.format(roc_auc["macro"]),
+            color='navy', linestyle=':', linewidth=4)
+
+    colors = cycle(['aqua', 'darkorange', 'cornflowerblue', 'forestgreen', 'maroon'])
+    for i, color in zip(range(n_classes), colors):
+        plt.plot(fpr[i], tpr[i], color=color, lw=lw,
+                label='ROC curve of class {0} (area = {1:0.2f})'
+                ''.format(labelEncoder.classes_[i], roc_auc[i]))
+
+    plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC plot of all classes')
+    plt.legend(loc="lower right")
+    plt.show()
 
 #   - #### Classification using SVM classifier
 
@@ -208,6 +275,10 @@ def SvmClassification(trainX, trainY, testX, testY, labelEncoder):
     print(classification_report(testY, predY, target_names=list(labelEncoder.classes_)))
 
     print('\n----ROC plot for predictions on test dataset----')
+    y_score = clf.predict_proba(testX)
+
+    makeRocPlot(testY, y_score, labelEncoder)
+
     return accuracy_score(testY, predY)
 
 #   - #### Classification using Random Forests classifier
@@ -233,6 +304,10 @@ def RandomForestClassification(trainX, trainY, testX, testY, labelEncoder):
     print(classification_report(testY, predY, target_names=list(labelEncoder.classes_)))
 
     print('\n----ROC plot for predictions on test dataset----')
+    y_score = clf.predict_proba(testX)
+
+    makeRocPlot(testY, y_score, labelEncoder)
+
     return accuracy_score(testY, predY)
 
 #   - #### Classification using Naive Bayes classifier
@@ -241,7 +316,7 @@ def NaiveBayesClassification(trainX, trainY, testX, testY, labelEncoder):
     """
     Classify the text using the Naive Bayes classifier of scikit-learn    
     """
-    
+
     clf = GaussianNB()
     
     trainX = trainX.toarray()
@@ -261,6 +336,11 @@ def NaiveBayesClassification(trainX, trainY, testX, testY, labelEncoder):
     print(classification_report(testY, predY, target_names=list(labelEncoder.classes_)))
 
     print('\n----ROC plot for predictions on test dataset----')
+
+    y_score = clf.predict_proba(testX)
+
+    makeRocPlot(testY, y_score, labelEncoder)
+
     return accuracy_score(testY, predY)
 
 #   - #### Classification using K-Nearest Neighbor classifier
