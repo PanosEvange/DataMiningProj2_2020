@@ -390,6 +390,12 @@ accuracyDict = dict()
 
 # Let's do classification using 2 different ways of vectorization
 
+# region language="javascript"
+# IPython.OutputArea.prototype._should_scroll = function(lines) {
+#     return false;
+# }
+# endregion
+
 #   - #### Bag-of-words vectorization
 
 # region
