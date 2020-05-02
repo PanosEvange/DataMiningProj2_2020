@@ -18,9 +18,8 @@ TO-DOS
     - ~~Accuracy~~
     - ~~ROC plot~~
 1. Beat the Benchmark:
-    - Αφαίρεση stop words
-    - Stemming
-    - Lemmatization
+    - ~~Αφαίρεση stop words~~
+    - ~~Stemming~~
     - Χρήση του τίτλου
 1. Clustering
     - Kmeans (μπορούμε και από κάποια υλοποιήση στο ιντερνετ ή βιβλιοθηκη, check eclass)

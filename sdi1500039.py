@@ -513,27 +513,30 @@ def stemmingPreprocess(initText):
 # Let's do some preprocessing for train and test data
 
 # region
+trainDataPreprocessed = trainDataSet.copy()
+testDataPreprocessed = testDataSet.copy()
+
 # preprocess train data
-for index, row in trainDataSet.iterrows():
+for index, row in trainDataPreprocessed.iterrows():
     initialText = row["CONTENT"]
-    trainDataSet.iloc[index]["CONTENT"] = preprocessText(initialText)
+    trainDataPreprocessed.iloc[index]["CONTENT"] = preprocessText(initialText)
 
 # # preprocess test data
-for index, row in testDataSet.iterrows():
+for index, row in testDataPreprocessed.iterrows():
     initialText = row["CONTENT"]
-    testDataSet.iloc[index]["CONTENT"] = preprocessText(initialText)
+    testDataPreprocessed.iloc[index]["CONTENT"] = preprocessText(initialText)
 # endregion
 
 # Let's do stemming
 
 # region
-for index, row in trainDataSet.iterrows():
+for index, row in trainDataPreprocessed.iterrows():
     initialText = row["CONTENT"]
-    trainDataSet.iloc[index]["CONTENT"] = stemmingPreprocess(initialText)
+    trainDataPreprocessed.iloc[index]["CONTENT"] = stemmingPreprocess(initialText)
 
-for index, row in testDataSet.iterrows():
+for index, row in testDataPreprocessed.iterrows():
     initialText = row["CONTENT"]
-    testDataSet.iloc[index]["CONTENT"] = stemmingPreprocess(initialText)
+    testDataPreprocessed.iloc[index]["CONTENT"] = stemmingPreprocess(initialText)
 # endregion
 
 # We will check only the SVM classifier with Tf-idf vectorization
@@ -541,12 +544,13 @@ for index, row in testDataSet.iterrows():
 # region
 tfIdfVectorizer = TfidfVectorizer(max_features=1000)
 
-trainX = tfIdfVectorizer.fit_transform(trainDataSet['CONTENT'])
-testX = tfIdfVectorizer.transform(testDataSet['CONTENT'])
+trainX = tfIdfVectorizer.fit_transform(trainDataPreprocessed['CONTENT'])
+testX = tfIdfVectorizer.transform(testDataPreprocessed['CONTENT'])
 
 print('\n-------------SVM Classification with TfIdf Vectorization in processed text-------------')
 accuracyDict["TfIdf-SVM-processed"] = SvmClassification(trainX, trainY, testX, testY, le)
 # endregion
+
 # Let's compare scores
 
 # region
@@ -557,3 +561,37 @@ resultsCompareDataFrame = pd.DataFrame(data=resultsDataCompare)
 
 resultsCompareDataFrame
 # endregion
+
+# As we see there is no big difference between scores for max_features=1000 in TfidfVectorizer. 
+# Let's check what happens for max_features=100
+
+tfIdfVectorizer = TfidfVectorizer(max_features=100)
+
+# region
+trainX = tfIdfVectorizer.fit_transform(trainDataSet['CONTENT'])
+testX = tfIdfVectorizer.transform(testDataSet['CONTENT'])
+
+print('-------------SVM Classification with TfIdf Vectorization for max_features=100-------------')
+accuracyDict["TfIdf-SVM-100"] = SvmClassification(trainX, trainY, testX, testY, le)
+# endregion
+
+# region
+trainX = tfIdfVectorizer.fit_transform(trainDataPreprocessed['CONTENT'])
+testX = tfIdfVectorizer.transform(testDataPreprocessed['CONTENT'])
+
+print('\n-------------SVM Classification with TfIdf Vectorization in processed text for max_features=100-------------')
+accuracyDict["TfIdf-SVM-processed-100"] = SvmClassification(trainX, trainY, testX, testY, le)
+# endregion
+
+# Let's compare scores one more time
+
+# region
+resultsDataCompare = {'SVM without preprocessing for max_features=100': [accuracyDict["TfIdf-SVM-100"]],
+                      'SVM with preprocessing for max_features=100': [accuracyDict["TfIdf-SVM-processed-100"]]}
+
+resultsCompareDataFrame = pd.DataFrame(data=resultsDataCompare)
+
+resultsCompareDataFrame
+# endregion
+
+# Here we can see a significant difference.
