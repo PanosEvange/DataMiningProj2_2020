@@ -28,6 +28,11 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+from nltk.corpus import stopwords as nltkStopwords
+from string import punctuation, digits
+import re
+from nltk import word_tokenize
+from nltk.stem import PorterStemmer
 
 # visualization
 from wordcloud import WordCloud
@@ -430,4 +435,125 @@ accuracyDict["TfIdf-RandomForests"] = RandomForestClassification(trainX, trainY,
 
 print('\n-------------Naive Bayes Classification with TfIdf Vectorization-------------')
 accuracyDict["TfIdf-NB"] = NaiveBayesClassification(trainX, trainY, testX, testY, le)
+# endregion
+
+#   #### Results Summary
+
+# region
+resultsData = {r'Vectorizer \ Classifier': ['BOW', 'Tfidf'],
+               'SVM': [accuracyDict["BOW-SVM"], accuracyDict["TfIdf-SVM"]],
+               'Random Forest': [accuracyDict["BOW-RandomForests"], accuracyDict["TfIdf-RandomForests"]],
+               'Naive Bayes': [accuracyDict["BOW-NB"], accuracyDict["TfIdf-NB"]]}
+
+resultsDataFrame = pd.DataFrame(data=resultsData)
+
+resultsDataFrame
+# endregion
+
+# ## __Beat the Benchmark (bonus)__
+
+# region
+def preprocessText(initText):
+    """Preprocess the text"""
+
+    # Make everything to lower case
+    processedText = initText.lower()
+
+    # Remove urls
+    processedText = re.sub(r'(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)'
+                           r'*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?', ' ', processedText)
+
+    # Remove any punctuation from the text
+    for c in punctuation:
+        processedText = processedText.replace(c, ' ')
+
+    # Remove digits
+    processedText = re.sub(r'\d+', '', processedText)
+
+    # Remove consecutive spaces
+    processedText = re.sub(r" {2,}", ' ', processedText)    
+    
+    # Split to words
+    tokens = word_tokenize(processedText)
+
+    # Remove sropwords
+    stopWords = ENGLISH_STOP_WORDS
+    stopWords = (stopWords.union(nltkStopwords.words('english')))
+    filtered = [w for w in tokens if w not in stopWords]
+
+    # Concat the remaining words in a single string again
+    if not filtered:  # list is empty
+        processedText = ''
+    else:
+        processedText = filtered[0]
+        for word in filtered[1:]:
+            processedText = processedText + ' ' + word
+
+    return processedText
+
+def stemmingPreprocess(initText):
+    # Split to words
+    tokens = word_tokenize(initText)
+    
+    # Do the stemming
+    stemmer = PorterStemmer()
+    stems = [stemmer.stem(token) for token in tokens]
+    
+    # Concat the remaining words in a single string again
+    if not stems:  # list is empty
+        processedText = ''
+    else:
+        processedText = stems[0]
+        for stem in stems[1:]:
+            processedText = processedText + ' ' + stem
+
+    return processedText
+# endregion
+
+# Let's do some preprocessing for train and test data
+
+# region
+# preprocess train data
+for index, row in trainDataSet.iterrows():
+    initialText = row["CONTENT"]
+    trainDataSet.iloc[index]["CONTENT"] = preprocessText(initialText)
+
+# # preprocess test data
+for index, row in testDataSet.iterrows():
+    initialText = row["CONTENT"]
+    testDataSet.iloc[index]["CONTENT"] = preprocessText(initialText)
+# endregion
+
+# Let's do stemming
+
+# region
+for index, row in trainDataSet.iterrows():
+    initialText = row["CONTENT"]
+    trainDataSet.iloc[index]["CONTENT"] = stemmingPreprocess(initialText)
+
+for index, row in testDataSet.iterrows():
+    initialText = row["CONTENT"]
+    testDataSet.iloc[index]["CONTENT"] = stemmingPreprocess(initialText)
+# endregion
+
+# We will check only the SVM classifier with Tf-idf vectorization
+
+# region
+tfIdfVectorizer = TfidfVectorizer(max_features=1000)
+
+trainX = tfIdfVectorizer.fit_transform(trainDataSet['CONTENT'])
+testX = tfIdfVectorizer.transform(testDataSet['CONTENT'])
+
+print('\n-------------SVM Classification with TfIdf Vectorization in processed text-------------')
+accuracyDict["TfIdf-SVM-processed"] = SvmClassification(trainX, trainY, testX, testY, le)
+# endregion
+# Let's compare scores
+
+# region
+resultsDataCompare = {'SVM without preprocessing': [accuracyDict["TfIdf-SVM"]],
+               'SVM with preprocessing': [accuracyDict["TfIdf-SVM-processed"]]}
+
+resultsCompareDataFrame = pd.DataFrame(data=resultsDataCompare)
+
+resultsCompareDataFrame
 # endregion
