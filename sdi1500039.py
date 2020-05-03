@@ -50,6 +50,8 @@ from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import label_binarize
+import scipy
+from collections import Counter
 
 # vectorization
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
@@ -350,12 +352,79 @@ def NaiveBayesClassification(trainX, trainY, testX, testY, labelEncoder):
 
 #   - #### Classification using K-Nearest Neighbor classifier
 
-# region
+# Our implemantion is based on this link https://towardsdatascience.com/k-nearest-neighbor-classifier-from-scratch-in-python-698e3de97063 
+# and this link https://machinelearningmastery.com/tutorial-to-implement-k-nearest-neighbors-in-python-from-scratch/
 
-# to fill
+# region
+# calculate the Euclidean distance between two 1d-arrays
+def distance(instance1, instance2):
+    return scipy.spatial.distance.euclidean(instance1, instance2)
+
+def get_neighbors(training_set, 
+                  labels, 
+                  test_instance, 
+                  k, 
+                  distance=distance):
+    """
+    get_neighors calculates a list of the k nearest neighbors
+    of an instance 'test_instance'.
+    The list neighbors contains 3-tuples with  
+    (index, dist, label)
+    where 
+    index    is the index from the training_set, 
+    dist     is the distance between the test_instance and the 
+             instance training_set[index]
+    distance is a reference to a function used to calculate the 
+             distances
+    """
+    distances = []
+    for index in range(len(training_set)):
+        dist = distance(test_instance, training_set[index])
+        distances.append((training_set[index], dist, labels[index]))
+    distances.sort(key=lambda x: x[1])
+    neighbors = distances[:k]
+    return neighbors
+
+# The function 'vote' returns the most common class. (Majority Voting)
+def vote(neighbors):
+    class_counter = Counter()
+    for neighbor in neighbors:
+        class_counter[neighbor[2]] += 1
+    return class_counter.most_common(1)[0][0]
+
+# Make a prediction with neighbors
+def predict_classification(training_set, labels, test_instance, k, distance=distance):
+    neighbors = get_neighbors(training_set, labels, test_instance, k, distance=distance)
+    prediction = vote(neighbors)
+    return prediction
+
+# kNN Algorithm
+def k_nearest_neighbors(trainX, trainY, testX, num_neighbors):
+    predictions = list()
+    for row in testX:
+        output = predict_classification(trainX, trainY, row,  num_neighbors, distance=distance )
+        predictions.append(output)
+    return(predictions)
+
+def KnnClassification(trainX, trainY, testX, testY, labelEncoder):
+    """
+    Classify the text using the KNN classifier we implemented   
+    """
+
+    trainXarray = trainX.toarray()
+    testXarray = testX.toarray()
+
+    predictions = k_nearest_neighbors(trainXarray, trainY, testXarray, 100)
+
+    predY = np.asarray(predictions)
+
+    # Classification_report
+    print('\n----Report for predictions on test dataset----')
+    print(classification_report(testY, predY, target_names=list(labelEncoder.classes_)))
+
+    return accuracy_score(testY, predY)
 
 # endregion
-
 # - ### *Split DataSet into TrainData and TestData*
 
 # region
@@ -417,6 +486,9 @@ accuracyDict["BOW-RandomForests"] = RandomForestClassification(trainX, trainY, t
 
 print('\n-------------Naive Bayes Classification with BOW Vectorization-------------')
 accuracyDict["BOW-NB"] = NaiveBayesClassification(trainX, trainY, testX, testY, le)
+
+print('\n-------------K Nearest Neighbor Classification with BOW Vectorization-------------')
+accuracyDict["BOW-knn"] = KnnClassification(trainX, trainY, testX, testY, le)
 # endregion
 
 #   - #### Tf-idf vectorization
@@ -435,6 +507,9 @@ accuracyDict["TfIdf-RandomForests"] = RandomForestClassification(trainX, trainY,
 
 print('\n-------------Naive Bayes Classification with TfIdf Vectorization-------------')
 accuracyDict["TfIdf-NB"] = NaiveBayesClassification(trainX, trainY, testX, testY, le)
+
+print('\n-------------K Nearest Neighbor Classification with TfIdf Vectorization-------------')
+accuracyDict["TfIdf-knn"] = KnnClassification(trainX, trainY, testX, testY, le)
 # endregion
 
 #   #### Results Summary
@@ -443,7 +518,8 @@ accuracyDict["TfIdf-NB"] = NaiveBayesClassification(trainX, trainY, testX, testY
 resultsData = {r'Vectorizer \ Classifier': ['BOW', 'Tfidf'],
                'SVM': [accuracyDict["BOW-SVM"], accuracyDict["TfIdf-SVM"]],
                'Random Forest': [accuracyDict["BOW-RandomForests"], accuracyDict["TfIdf-RandomForests"]],
-               'Naive Bayes': [accuracyDict["BOW-NB"], accuracyDict["TfIdf-NB"]]}
+               'Naive Bayes': [accuracyDict["BOW-NB"], accuracyDict["TfIdf-NB"]],
+               'K Nearest Neighbor': [accuracyDict["BOW-knn"], accuracyDict["TfIdf-knn"]]}
 
 resultsDataFrame = pd.DataFrame(data=resultsData)
 
@@ -472,7 +548,7 @@ def preprocessText(initText):
 
     # Remove consecutive spaces
     processedText = re.sub(r" {2,}", ' ', processedText)    
-    
+
     # Split to words
     tokens = word_tokenize(processedText)
 
@@ -494,11 +570,11 @@ def preprocessText(initText):
 def stemmingPreprocess(initText):
     # Split to words
     tokens = word_tokenize(initText)
-    
+
     # Do the stemming
     stemmer = PorterStemmer()
     stems = [stemmer.stem(token) for token in tokens]
-    
+
     # Concat the remaining words in a single string again
     if not stems:  # list is empty
         processedText = ''
