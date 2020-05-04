@@ -56,6 +56,9 @@ from collections import Counter
 # vectorization
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
+# clustering
+from nltk.cluster import KMeansClusterer, cosine_distance
+
 # for data exploration
 import os
 import numpy as np
@@ -671,3 +674,42 @@ resultsCompareDataFrame
 # endregion
 
 # Here we can see a significant difference.
+
+# ## __Clustering__
+
+# region
+
+# demo from nltk.org about understanding kmeans with euklidean
+# https://www.nltk.org/_modules/nltk/cluster/kmeans.html#demo
+
+bowVectorizer = CountVectorizer(max_features=1000)
+
+trainX = bowVectorizer.fit_transform(trainDataSet['CONTENT'])
+testX = bowVectorizer.transform(testDataSet['CONTENT'])
+
+# convert trainX, testX into list of arrays
+vectorsTrainX = [np.array(f) for f in trainX.toarray()]
+vectorsTestX = [np.array(f) for f in testX.toarray()]
+
+# init cluster with trainX
+# maybe init with something smarter than none ?
+clusterer = KMeansClusterer(5, cosine_distance, initial_means=None)
+clusters = clusterer.cluster(vectorsTrainX, True, trace=True)
+
+# print("Clustered:", vectorsX)
+# print("As:", clusters)
+# print("Means:", clusterer.means())
+# print()
+
+# test k-means using the cosine distance metric, 5 means and repeat
+# clustering 10 times with random seeds
+clusterer = KMeansClusterer(5, cosine_distance, repeats=10)
+clusters = clusterer.cluster(vectorsTestX, True)
+
+#print("Clustered:", vectorsTestX)
+# print("As:", clusters)
+# print("Means:", clusterer.means())
+# print()
+
+# endregion
+
