@@ -600,7 +600,7 @@ for index, row in trainDataPreprocessed.iterrows():
     initialText = row["CONTENT"]
     trainDataPreprocessed.iloc[index]["CONTENT"] = preprocessText(initialText)
 
-# # preprocess test data
+# preprocess test data
 for index, row in testDataPreprocessed.iterrows():
     initialText = row["CONTENT"]
     testDataPreprocessed.iloc[index]["CONTENT"] = preprocessText(initialText)
@@ -692,24 +692,55 @@ vectorsTrainX = [np.array(f) for f in trainX.toarray()]
 vectorsTestX = [np.array(f) for f in testX.toarray()]
 
 # init cluster with trainX
-# maybe init with something smarter than none ?
+# maybe init with something smarter than none ? https://datascience.stackexchange.com/questions/5656/k-means-what-are-some-good-ways-to-choose-an-efficient-set-of-initial-centroids
 clusterer = KMeansClusterer(5, cosine_distance, initial_means=None)
-clusters = clusterer.cluster(vectorsTrainX, True, trace=True)
+assigned_clusters = clusterer.cluster(vectorsTrainX, assign_clusters=True)
 
-# print("Clustered:", vectorsX)
-# print("As:", clusters)
-# print("Means:", clusterer.means())
-# print()
+from sklearn.decomposition import PCA
 
-# test k-means using the cosine distance metric, 5 means and repeat
-# clustering 10 times with random seeds
-clusterer = KMeansClusterer(5, cosine_distance, repeats=10)
-clusters = clusterer.cluster(vectorsTestX, True)
+# reduce the features to 2D
+random_state = 0 
+pca = PCA(n_components=2, random_state=random_state)
+reduced_features = pca.fit_transform(trainX.toarray())
 
-#print("Clustered:", vectorsTestX)
-# print("As:", clusters)
-# print("Means:", clusterer.means())
-# print()
+# reduce the cluster centers to 2D
+reduced_cluster_centers = pca.transform(clusterer._means)
 
+plt.figure(figsize=(12, 12))
+plt.scatter(reduced_features[:,0], reduced_features[:,1], c=assigned_clusters)
+plt.scatter(reduced_cluster_centers[:, 0], reduced_cluster_centers[:,1], marker='x', s=150, c='b')
 # endregion
 
+# region
+
+# demo from nltk.org about understanding kmeans with euklidean
+# https://www.nltk.org/_modules/nltk/cluster/kmeans.html#demo
+
+tfIdfVectorizer = TfidfVectorizer(max_features=1000)
+
+trainX = tfIdfVectorizer.fit_transform(trainDataSet['CONTENT'])
+testX = tfIdfVectorizer.transform(testDataSet['CONTENT'])
+
+# convert trainX, testX into list of arrays
+vectorsTrainX = [np.array(f) for f in trainX.toarray()]
+vectorsTestX = [np.array(f) for f in testX.toarray()]
+
+# init cluster with trainX
+# maybe init with something smarter than none ? https://datascience.stackexchange.com/questions/5656/k-means-what-are-some-good-ways-to-choose-an-efficient-set-of-initial-centroids
+clusterer = KMeansClusterer(5, cosine_distance, initial_means=None)
+assigned_clusters = clusterer.cluster(vectorsTrainX, assign_clusters=True)
+
+from sklearn.decomposition import PCA
+
+# reduce the features to 2D
+random_state = 0 
+pca = PCA(n_components=2, random_state=random_state)
+reduced_features = pca.fit_transform(trainX.toarray())
+
+# reduce the cluster centers to 2D
+reduced_cluster_centers = pca.transform(clusterer._means)
+
+plt.figure(figsize=(12, 12))
+plt.scatter(reduced_features[:,0], reduced_features[:,1], c=assigned_clusters)
+plt.scatter(reduced_cluster_centers[:, 0], reduced_cluster_centers[:,1], marker='x', s=150, c='b')
+# endregion
