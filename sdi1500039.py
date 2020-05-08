@@ -58,6 +58,7 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
 # clustering
 from nltk.cluster import KMeansClusterer, cosine_distance
+from sklearn.decomposition import PCA
 
 # for data exploration
 import os
@@ -682,6 +683,33 @@ resultsCompareDataFrame
 # demo from nltk.org about understanding kmeans with euklidean
 # https://www.nltk.org/_modules/nltk/cluster/kmeans.html#demo
 
+def KmeansClustering(trainX, numberOfClusters, numberOfRepeats):
+    # init cluster with trainX
+    # maybe init with something smarter than none ? https://datascience.stackexchange.com/questions/5656/k-means-what-are-some-good-ways-to-choose-an-efficient-set-of-initial-centroids
+    clusterer = KMeansClusterer(numberOfClusters, cosine_distance, initial_means=None, repeats=numberOfRepeats)
+    assigned_clusters = clusterer.cluster(trainX, assign_clusters=True)
+    return clusterer, assigned_clusters
+# endregion
+
+# ### PCA
+
+def principalComponentAnalysis(nComponents, trainX, labels, clusters):
+    # reduce the features to 2D
+    random_state = 0 
+    pca = PCA(n_components=nComponents, random_state=random_state)
+    reduced_features = pca.fit_transform(trainX.toarray())
+
+    # reduce the cluster centers to 2D
+    reduced_cluster_centers = pca.transform(labels._means)
+
+    plt.figure(figsize=(12, 12))
+    plt.scatter(reduced_features[:,0], reduced_features[:,1], c=clusters)
+    plt.scatter(reduced_cluster_centers[:, 0], reduced_cluster_centers[:,1], marker='x', s=150, c='b')
+
+# ### BoW
+
+# region
+
 bowVectorizer = CountVectorizer(max_features=1000)
 
 trainX = bowVectorizer.fit_transform(trainDataSet['CONTENT'])
@@ -690,31 +718,14 @@ testX = bowVectorizer.transform(testDataSet['CONTENT'])
 # convert trainX, testX into list of arrays
 vectorsTrainX = [np.array(f) for f in trainX.toarray()]
 vectorsTestX = [np.array(f) for f in testX.toarray()]
+labels, clusters = KmeansClustering(vectorsTrainX, 5, 20)
+principalComponentAnalysis(2, trainX, labels, clusters)
 
-# init cluster with trainX
-# maybe init with something smarter than none ? https://datascience.stackexchange.com/questions/5656/k-means-what-are-some-good-ways-to-choose-an-efficient-set-of-initial-centroids
-clusterer = KMeansClusterer(5, cosine_distance, initial_means=None)
-assigned_clusters = clusterer.cluster(vectorsTrainX, assign_clusters=True)
-
-from sklearn.decomposition import PCA
-
-# reduce the features to 2D
-random_state = 0 
-pca = PCA(n_components=2, random_state=random_state)
-reduced_features = pca.fit_transform(trainX.toarray())
-
-# reduce the cluster centers to 2D
-reduced_cluster_centers = pca.transform(clusterer._means)
-
-plt.figure(figsize=(12, 12))
-plt.scatter(reduced_features[:,0], reduced_features[:,1], c=assigned_clusters)
-plt.scatter(reduced_cluster_centers[:, 0], reduced_cluster_centers[:,1], marker='x', s=150, c='b')
 # endregion
 
-# region
+# ### tf-idf
 
-# demo from nltk.org about understanding kmeans with euklidean
-# https://www.nltk.org/_modules/nltk/cluster/kmeans.html#demo
+# region
 
 tfIdfVectorizer = TfidfVectorizer(max_features=1000)
 
@@ -724,23 +735,7 @@ testX = tfIdfVectorizer.transform(testDataSet['CONTENT'])
 # convert trainX, testX into list of arrays
 vectorsTrainX = [np.array(f) for f in trainX.toarray()]
 vectorsTestX = [np.array(f) for f in testX.toarray()]
+labels, clusters = KmeansClustering(vectorsTrainX, 5, 40)
+principalComponentAnalysis(2, trainX, labels, clusters)
 
-# init cluster with trainX
-# maybe init with something smarter than none ? https://datascience.stackexchange.com/questions/5656/k-means-what-are-some-good-ways-to-choose-an-efficient-set-of-initial-centroids
-clusterer = KMeansClusterer(5, cosine_distance, initial_means=None)
-assigned_clusters = clusterer.cluster(vectorsTrainX, assign_clusters=True)
-
-from sklearn.decomposition import PCA
-
-# reduce the features to 2D
-random_state = 0 
-pca = PCA(n_components=2, random_state=random_state)
-reduced_features = pca.fit_transform(trainX.toarray())
-
-# reduce the cluster centers to 2D
-reduced_cluster_centers = pca.transform(clusterer._means)
-
-plt.figure(figsize=(12, 12))
-plt.scatter(reduced_features[:,0], reduced_features[:,1], c=assigned_clusters)
-plt.scatter(reduced_cluster_centers[:, 0], reduced_cluster_centers[:,1], marker='x', s=150, c='b')
 # endregion
