@@ -39,6 +39,7 @@ from wordcloud import WordCloud
 from IPython.display import Image
 from IPython.display import display
 from itertools import cycle
+import matplotlib.patches as mpatches
 
 # classification
 from sklearn.model_selection import KFold
@@ -52,6 +53,9 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import label_binarize
 import scipy
 from collections import Counter
+import gensim 
+import random
+from operator import add
 
 # vectorization
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
@@ -678,64 +682,139 @@ resultsCompareDataFrame
 
 # ## __Clustering__
 
-# region
-
-# demo from nltk.org about understanding kmeans with euklidean
-# https://www.nltk.org/_modules/nltk/cluster/kmeans.html#demo
-
 def KmeansClustering(trainX, numberOfClusters, numberOfRepeats):
     # init cluster with trainX
     # maybe init with something smarter than none ? https://datascience.stackexchange.com/questions/5656/k-means-what-are-some-good-ways-to-choose-an-efficient-set-of-initial-centroids
     clusterer = KMeansClusterer(numberOfClusters, cosine_distance, initial_means=None, repeats=numberOfRepeats)
     assigned_clusters = clusterer.cluster(trainX, assign_clusters=True)
     return clusterer, assigned_clusters
-# endregion
 
-# ### PCA
+# - #### Compression using PCA method
 
 def principalComponentAnalysis(nComponents, trainX, labels, clusters):
     # reduce the features to 2D
     random_state = 0 
     pca = PCA(n_components=nComponents, random_state=random_state)
-    reduced_features = pca.fit_transform(trainX.toarray())
+
+    #reduced_features = pca.fit_transform(trainX.toarray())
+    reduced_features = pca.fit_transform(trainX)
 
     # reduce the cluster centers to 2D
     reduced_cluster_centers = pca.transform(labels._means)
 
-    plt.figure(figsize=(12, 12))
-    plt.scatter(reduced_features[:,0], reduced_features[:,1], c=clusters)
-    plt.scatter(reduced_cluster_centers[:, 0], reduced_cluster_centers[:,1], marker='x', s=150, c='b')
+    # assign specific marker shape for each true category
+    markers = ["o" , "v" , "P" , "s", "*"]
+    colors = ["tab:blue" , "tab:orange" , "tab:green" , "tab:red", "tab:purple"]
 
-# ### BoW
+    specificMarkers = list()
+    specificColors = list()
+
+    for i in range(0,trainX.shape[0]):
+        specificMarkers.append(markers[trainY[i]])
+        specificColors.append(colors[clusters[i]])
+
+    plt.figure(figsize=(12, 12))
+ 
+    xArray = reduced_features[:,0]
+    yArray = reduced_features[:,1]
+
+    for i in range(0,len(clusters)):
+        plt.scatter(xArray[i], yArray[i], marker=specificMarkers[i], c=specificColors[i])
+
+    plt.scatter(reduced_cluster_centers[:, 0], reduced_cluster_centers[:,1], marker='x', s=150, c='b')
+    
+    patchList = []
+    for i in range(0,len(markers)):
+        patchList.append(plt.plot([],[], color='black', marker=markers[i], label=le.classes_[i], ls="")[0])
+
+    plt.legend(handles=patchList)
+
+    plt.show()
+
+# - #### Bag-of-words vectorization
 
 # region
-
 bowVectorizer = CountVectorizer(max_features=1000)
 
 trainX = bowVectorizer.fit_transform(trainDataSet['CONTENT'])
-testX = bowVectorizer.transform(testDataSet['CONTENT'])
 
-# convert trainX, testX into list of arrays
+# convert trainX into list of arrays
 vectorsTrainX = [np.array(f) for f in trainX.toarray()]
-vectorsTestX = [np.array(f) for f in testX.toarray()]
 labels, clusters = KmeansClustering(vectorsTrainX, 5, 20)
-principalComponentAnalysis(2, trainX, labels, clusters)
-
+principalComponentAnalysis(2, trainX.toarray(), labels, clusters)
 # endregion
 
-# ### tf-idf
+# - #### Tf-idf vectorization
 
 # region
-
 tfIdfVectorizer = TfidfVectorizer(max_features=1000)
 
 trainX = tfIdfVectorizer.fit_transform(trainDataSet['CONTENT'])
-testX = tfIdfVectorizer.transform(testDataSet['CONTENT'])
+
+# convert trainX into list of arrays
+vectorsTrainX = [np.array(f) for f in trainX.toarray()]
+labels, clusters = KmeansClustering(vectorsTrainX, 5, 40)
+principalComponentAnalysis(2, trainX.toarray(), labels, clusters)
+# endregion
+
+#   - #### Word embeddings vectorization
+
+# Read pre-trained Word Embeddings
+
+# Load Google's pre-trained Word2Vec model.
+
+model_w2v = gensim.models.KeyedVectors.load_word2vec_format('./GoogleNews-vectors-negative300.bin', binary=True)  
+vec_size = 300
+
+# region
+def sample_floats(low=-1.0, high=1.0, k=1):
+    """ 
+    Return a k-length list of unique random floats in the range of low <= x <= high
+    """
+    result = []
+    seen = set()
+    for i in range(k):
+        x = random.uniform(low, high)
+        while x in seen:
+            x = random.uniform(low, high)
+        seen.add(x)
+        result.append(x)
+    return result
+
+def wordEmbeddingsVectorizer(data):
+    """
+    Vectorize the data based on the model we loaded.
+    """
+    text_vec = []
+    for index, row in data.iterrows():
+        text = row['CONTENT']
+        text_len = len(text)
+        if text_len == 0:
+            article_vec = sample_floats(-5.0, 5.0, vec_size)
+            text_vec.append(article_vec)
+            continue
+        tokens = word_tokenize(text)
+        if tokens[0] in model_w2v.vocab:
+            article_vec = model_w2v[tokens[0]]
+        else:
+            article_vec = sample_floats(-5.0, 5.0, vec_size)
+        for token in tokens[1:]:
+            if token in model_w2v.vocab:
+                article_vec = list(map(add, article_vec, model_w2v[token]))
+            else:
+                article_vec = list(map(add, article_vec, sample_floats(-5.0, 5.0, vec_size)))
+        final_article_vec = [i / text_len for i in article_vec]
+        text_vec.append(final_article_vec)
+
+    return np.array(text_vec)
+# endregion
+
+# region
+trainX = wordEmbeddingsVectorizer(trainDataSet)
 
 # convert trainX, testX into list of arrays
-vectorsTrainX = [np.array(f) for f in trainX.toarray()]
-vectorsTestX = [np.array(f) for f in testX.toarray()]
-labels, clusters = KmeansClustering(vectorsTrainX, 5, 40)
-principalComponentAnalysis(2, trainX, labels, clusters)
+vectorsTrainX = [np.array(f) for f in trainX]
 
+labels, clusters = KmeansClustering(vectorsTrainX, 5, 20)
+principalComponentAnalysis(2, trainX, labels, clusters)
 # endregion
