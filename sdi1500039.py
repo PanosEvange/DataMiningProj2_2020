@@ -815,6 +815,6 @@ trainX = wordEmbeddingsVectorizer(trainDataSet)
 # convert trainX, testX into list of arrays
 vectorsTrainX = [np.array(f) for f in trainX]
 
-labels, clusters = KmeansClustering(vectorsTrainX, 5, 20)
+labels, clusters = KmeansClustering(vectorsTrainX, 5, 40)
 principalComponentAnalysis(2, trainX, labels, clusters)
 # endregion
