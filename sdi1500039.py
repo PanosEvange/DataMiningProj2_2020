@@ -42,12 +42,13 @@ from itertools import cycle
 import matplotlib.patches as mpatches
 
 # classification
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, cross_validate
 from sklearn import svm, preprocessing
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import classification_report, make_scorer, accuracy_score, \
+                            precision_score, recall_score, f1_score, roc_curve, auc,\
+                            roc_auc_score, plot_roc_curve
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import label_binarize
@@ -192,19 +193,18 @@ def scoresReportCv(clf, trainX, trainY):
 
     print('----Report for 10-fold Cross Validation----')
 
-    precisions = cross_val_score(clf, trainX, trainY, cv=10, scoring='precision_weighted')
-    print ('Precision \t %0.2f' % (np.mean(precisions)))
+    scoring =   {'Accuracy' : make_scorer(accuracy_score), 
+                'Precision' : make_scorer(precision_score, average='weighted'),
+                'Recall' : make_scorer(recall_score, average='weighted'),
+                'F1' : make_scorer(f1_score, average='weighted')}
 
-    recalls = cross_val_score(clf, trainX, trainY, cv=10, scoring='recall_weighted')
-    print ('Recalls \t %0.2f' % (np.mean(recalls)))
+    scores = cross_validate(clf, trainX, trainY, cv=10, scoring=scoring)
+    print ('Precision \t %0.2f' % (scores['test_Precision'].mean()))
+    print ('Recalls \t %0.2f' % (scores['test_Recall'].mean()))
+    print ('F-Measure \t %0.2f' % (scores['test_F1'].mean()))
+    print("Accuracy: \t %0.2f (+/- %0.2f)" % (scores['test_Accuracy'].mean(), scores['test_Accuracy'].std() * 2))
 
-    f1s = cross_val_score(clf, trainX, trainY, cv=10, scoring='f1_weighted')
-    print ('F-Measure \t %0.2f' % (np.mean(f1s)))
-
-    scores = cross_val_score(clf, trainX, trainY, cv=10)
-    print("Accuracy: \t %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
-
-def makeRocPlot(labelTest, predictions, labelEncoder):
+def makeRocPlot(labelTest, predictions, labelEncoder, mySubplots = None):
     # Binarize the output
     labelsAsNumber = [i for i in range(0,len(labelEncoder.classes_))]
     labelTest = label_binarize(labelTest, classes=labelsAsNumber)
@@ -240,31 +240,82 @@ def makeRocPlot(labelTest, predictions, labelEncoder):
 
     lw = 2
 
-    # Plot all ROC curves
-    plt.figure(figsize=(12, 12))
-    plt.plot(fpr["micro"], tpr["micro"],
-            label='micro-average ROC curve (area = {0:0.2f})'
-                ''.format(roc_auc["micro"]),
-            color='deeppink', linestyle=':', linewidth=4)
+    if mySubplots is not None:
+        # Plot all ROC curves
+        mySubplots.plot(fpr["micro"], tpr["micro"],
+                label='micro-average ROC curve (area = {0:0.2f})'
+                    ''.format(roc_auc["micro"]),
+                color='deeppink', linestyle=':', linewidth=4)
 
-    plt.plot(fpr["macro"], tpr["macro"],
-            label='macro-average ROC curve (area = {0:0.2f})'
-                ''.format(roc_auc["macro"]),
-            color='navy', linestyle=':', linewidth=4)
+        mySubplots.plot(fpr["macro"], tpr["macro"],
+                label='macro-average ROC curve (area = {0:0.2f})'
+                    ''.format(roc_auc["macro"]),
+                color='navy', linestyle=':', linewidth=4)
 
-    colors = cycle(['aqua', 'darkorange', 'cornflowerblue', 'forestgreen', 'maroon'])
-    for i, color in zip(range(n_classes), colors):
-        plt.plot(fpr[i], tpr[i], color=color, lw=lw,
-                label='ROC curve of class {0} (area = {1:0.2f})'
-                ''.format(labelEncoder.classes_[i], roc_auc[i]))
+        colors = cycle(['aqua', 'darkorange', 'cornflowerblue', 'forestgreen', 'maroon'])
+        for i, color in zip(range(n_classes), colors):
+            mySubplots.plot(fpr[i], tpr[i], color=color, lw=lw,
+                    label='ROC curve of class {0} (area = {1:0.2f})'
+                    ''.format(labelEncoder.classes_[i], roc_auc[i]))
 
-    plt.plot([0, 1], [0, 1], 'k--', lw=lw)
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('ROC plot of all classes')
-    plt.legend(loc="lower right")
+        mySubplots.plot([0, 1], [0, 1], 'k--', lw=lw)
+        mySubplots.axis(xmin=0.0,xmax=1.0, ymin=0.0, ymax=1.05)
+        mySubplots.set_xlabel('False Positive Rate')
+        mySubplots.set_ylabel('True Positive Rate')
+        mySubplots.legend(loc="lower right")
+    else:
+        # Plot all ROC curves
+        plt.figure(figsize=(12, 12))
+        plt.plot(fpr["micro"], tpr["micro"],
+                label='micro-average ROC curve (area = {0:0.2f})'
+                    ''.format(roc_auc["micro"]),
+                color='deeppink', linestyle=':', linewidth=4)
+
+        plt.plot(fpr["macro"], tpr["macro"],
+                label='macro-average ROC curve (area = {0:0.2f})'
+                    ''.format(roc_auc["macro"]),
+                color='navy', linestyle=':', linewidth=4)
+
+        colors = cycle(['aqua', 'darkorange', 'cornflowerblue', 'forestgreen', 'maroon'])
+        for i, color in zip(range(n_classes), colors):
+            plt.plot(fpr[i], tpr[i], color=color, lw=lw,
+                    label='ROC curve of class {0} (area = {1:0.2f})'
+                    ''.format(labelEncoder.classes_[i], roc_auc[i]))
+
+        plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC plot of all classes')
+        plt.legend(loc="lower right")
+
+def makeRocPlotsCV (clf, trainX, trainY, labelEncoder):
+     # make rocPlots for each fold in 10 CV
+    f, axs = plt.subplots(5, 2)
+    f.set_figheight(30)
+    f.set_figwidth(30)
+
+    # Run classifier with cross-validation and plot ROC curves
+    cv = StratifiedKFold(n_splits=10)
+
+    i = 0
+    z = 0
+    k = 1
+
+    for train, test in cv.split(trainX, trainY):
+        y_score = clf.fit(trainX[train], trainY[train]).predict_proba(trainX[test])
+        makeRocPlot(trainY[test], y_score, labelEncoder, axs[i, z])
+
+        axs[i, z].set_title('Roc Plot for fold - {0}'.format(k))
+
+        k += 1
+        if z == 1:
+            i += 1
+            z = 0
+        else:
+            z = 1
+
     plt.show()
 
 #   - #### Classification using SVM classifier
@@ -276,12 +327,15 @@ def SvmClassification(trainX, trainY, testX, testY, labelEncoder):
     
     clf = svm.SVC(kernel='linear', C=1, probability=True)
 
-    # fit train set
-    clf.fit(trainX, trainY)
-    
     # use 10-fold Cross Validation
     scoresReportCv(clf, trainX, trainY)
 
+    print('----Roc Plots for 10-fold Cross Validation----')
+    makeRocPlotsCV (clf, trainX, trainY, labelEncoder)
+
+    # fit train set
+    clf.fit(trainX, trainY)
+    
     # Predict test set
     predY = clf.predict(testX)
 
@@ -293,6 +347,7 @@ def SvmClassification(trainX, trainY, testX, testY, labelEncoder):
     y_score = clf.predict_proba(testX)
 
     makeRocPlot(testY, y_score, labelEncoder)
+    plt.show()
 
     return accuracy_score(testY, predY)
 
@@ -304,13 +359,16 @@ def RandomForestClassification(trainX, trainY, testX, testY, labelEncoder):
     """
     
     clf = RandomForestClassifier()
-        
-    # fit train set
-    clf.fit(trainX, trainY)
-    
+
     # use 10-fold Cross Validation
     scoresReportCv(clf, trainX, trainY)
 
+    print('----Roc Plots for 10-fold Cross Validation----')
+    makeRocPlotsCV (clf, trainX, trainY, labelEncoder)
+
+    # fit train set
+    clf.fit(trainX, trainY)
+    
     # Predict test set
     predY = clf.predict(testX)
 
@@ -322,6 +380,7 @@ def RandomForestClassification(trainX, trainY, testX, testY, labelEncoder):
     y_score = clf.predict_proba(testX)
 
     makeRocPlot(testY, y_score, labelEncoder)
+    plt.show()
 
     return accuracy_score(testY, predY)
 
@@ -336,12 +395,15 @@ def NaiveBayesClassification(trainX, trainY, testX, testY, labelEncoder):
     
     trainX = trainX.toarray()
     
-    # fit train set
-    clf.fit(trainX, trainY)
-    
     # use 10-fold Cross Validation
     scoresReportCv(clf, trainX, trainY)
 
+    print('----Roc Plots for 10-fold Cross Validation----')
+    makeRocPlotsCV (clf, trainX, trainY, labelEncoder)
+
+    # fit train set
+    clf.fit(trainX, trainY)
+    
     # Predict test set
     testX = testX.toarray()
     predY = clf.predict(testX)
@@ -355,6 +417,7 @@ def NaiveBayesClassification(trainX, trainY, testX, testY, labelEncoder):
     y_score = clf.predict_proba(testX)
 
     makeRocPlot(testY, y_score, labelEncoder)
+    plt.show()
 
     return accuracy_score(testY, predY)
 
