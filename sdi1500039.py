@@ -503,6 +503,19 @@ def k_nearest_neighbors(trainX, trainY, testX, num_neighbors):
         predictions.append(output)
     return(predictions)
 
+# Evaluate an algorithm using a cross validation split
+# Specific evaluation for our knn algorithm
+def evaluate_algorithm(trainX, trainY, n_folds):
+    scores = list()
+    cv = StratifiedKFold(n_splits=10)
+
+    for train, test in cv.split(trainX, trainY):
+        predictions = k_nearest_neighbors(trainX[train], trainY[train], trainX[test], 100)
+        predY = np.asarray(predictions)
+        scores.append(accuracy_score(trainY[test], predY))
+    
+    return scores
+
 def KnnClassification(trainX, trainY, testX, testY, labelEncoder):
     """
     Classify the text using the KNN classifier we implemented   
@@ -511,11 +524,17 @@ def KnnClassification(trainX, trainY, testX, testY, labelEncoder):
     trainXarray = trainX.toarray()
     testXarray = testX.toarray()
 
-    predictions = k_nearest_neighbors(trainXarray, trainY, testXarray, 100)
-
-    predY = np.asarray(predictions)
+    print('\n----10 Fold Cross Validation Evaluation----')
+    # evaluate algorithm
+    n_folds = 10
+    scores = evaluate_algorithm(trainXarray, trainY, n_folds)
+    print('Scores: %s' % scores)
+    print('Mean Accuracy: %.3f%%' % (sum(scores)/float(len(scores))))
+    
 
     # Classification_report
+    predictions = k_nearest_neighbors(trainXarray, trainY, testXarray, 100)
+    predY = np.asarray(predictions)
     print('\n----Report for predictions on test dataset----')
     print(classification_report(testY, predY, target_names=list(labelEncoder.classes_)))
 
