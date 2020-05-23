@@ -3,7 +3,7 @@
 TO-DOS
 
 Σημαντικά:
-1. Πειραματισμός με παραμέτρους στον SVM με χρήση της GridSearchCV()
+1. ~~Πειραματισμός με παραμέτρους στον SVM με χρήση της GridSearchCV()~~
 2. 10 fold Cross Validation στην δική μας υλοποίηση KNN (ίσως με βάση την def evaluate_algorithm() από
  https://machinelearningmastery.com/tutorial-to-implement-k-nearest-neighbors-in-python-from-scratch/)
 3. Roc Plot για την δική μας υλοποίηση KNN.
@@ -12,7 +12,7 @@ TO-DOS
 1. ~~Split του παραπάνω αρχείου σε 2 tsv αρχεία train_set και test_set όπου το test_set να μην έχει το πεδίο Category. Με χρήση της συνάρτησης train_test_split και χρήση stratify parameter.~~
 1. ~~Δημιουργία 5 wordClouds από την στήλη content. 1 για κάθε κατηγορία.~~
 1. ~~Classification με:~~
-    - ~~SVM~~ και πειραματισμός με παραμέτρους εκφώνησης
+    - ~~SVM~~ ~~και πειραματισμός με παραμέτρους εκφώνησης~~
     - ~~Random Forests~~
     - ~~Naive Bayes~~
     - ~~KNN δική μας υλοποίηση~~ (λένε στο e-class ότι θέλουν και από το 10 CV + Roc Plot)

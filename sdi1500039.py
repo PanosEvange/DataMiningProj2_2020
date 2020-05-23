@@ -26,7 +26,7 @@
 # region
 # data processing
 import pandas as pd
-from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
+from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold, GridSearchCV
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 from nltk.corpus import stopwords as nltkStopwords
 from string import punctuation, digits
@@ -240,7 +240,7 @@ def makeRocPlot(labelTest, predictions, labelEncoder, mySubplots = None):
 
     lw = 2
 
-    if mySubplots is not None:
+    if mySubplots is not None: # subplots for 10-CV
         # Plot all ROC curves
         mySubplots.plot(fpr["micro"], tpr["micro"],
                 label='micro-average ROC curve (area = {0:0.2f})'
@@ -332,7 +332,7 @@ def SvmClassification(trainX, trainY, testX, testY, labelEncoder):
 
     print('----Roc Plots for 10-fold Cross Validation----')
     makeRocPlotsCV (clf, trainX, trainY, labelEncoder)
-
+    
     # fit train set
     clf.fit(trainX, trainY)
     
@@ -350,6 +350,32 @@ def SvmClassification(trainX, trainY, testX, testY, labelEncoder):
     plt.show()
 
     return accuracy_score(testY, predY)
+
+# we will use gridSearchCV with svm only one time for demonstration as it is slow
+def SvmClassificationGridSearchCVDemo(trainX, trainY, testX, testY, labelEncoder):
+    """
+    Classify the text using the SVM classifier of scikit-learn with gridSearchCV 
+    """
+
+    parameters = {'kernel':('linear', 'rbf'), 'C':[0.1, 1, 10], 'gamma':('scale', 'auto')}
+    svc = svm.SVC(probability=True)
+    clf = GridSearchCV(svc, parameters, n_jobs = -1)
+    
+    # fit train set
+    clf.fit(trainX, trainY)
+    
+    # Predict test set
+    predY = clf.predict(testX)
+
+    # Classification_report
+    print('\n----Report for predictions on test dataset with GridSearchCV----')
+    print(classification_report(testY, predY, target_names=list(labelEncoder.classes_)))
+
+    print('\n----ROC plot for predictions on test dataset with GridSearchCV----')
+    y_score = clf.predict_proba(testX)
+
+    makeRocPlot(testY, y_score, labelEncoder)
+    plt.show()
 
 #   - #### Classification using Random Forests classifier
 
@@ -552,6 +578,9 @@ testX = bowVectorizer.transform(testDataSet['CONTENT'])
 print('-------------SVM Classification with BOW Vectorization-------------')
 accuracyDict["BOW-SVM"] = SvmClassification(trainX, trainY, testX, testY, le)
 
+print('-------------SVM Classification with BOW Vectorization and GridSearchCV for demonstration-------------')
+SvmClassificationGridSearchCVDemo(trainX, trainY, testX, testY, le)
+
 print('\n-------------Random Forests Classification with BOW Vectorization-------------')
 accuracyDict["BOW-RandomForests"] = RandomForestClassification(trainX, trainY, testX, testY, le)
 
@@ -747,7 +776,6 @@ resultsCompareDataFrame
 
 def KmeansClustering(trainX, numberOfClusters, numberOfRepeats):
     # init cluster with trainX
-    # maybe init with something smarter than none ? https://datascience.stackexchange.com/questions/5656/k-means-what-are-some-good-ways-to-choose-an-efficient-set-of-initial-centroids
     clusterer = KMeansClusterer(numberOfClusters, cosine_distance, initial_means=None, repeats=numberOfRepeats)
     assigned_clusters = clusterer.cluster(trainX, assign_clusters=True)
     return clusterer, assigned_clusters
