@@ -6,7 +6,7 @@ TO-DOS
 1. ~~Πειραματισμός με παραμέτρους στον SVM με χρήση της GridSearchCV()~~
 2. ~~10 fold Cross Validation στην δική μας υλοποίηση KNN (ίσως με βάση την def evaluate_algorithm() από
  https://machinelearningmastery.com/tutorial-to-implement-k-nearest-neighbors-in-python-from-scratch/)~~
-3. Roc Plot για την δική μας υλοποίηση KNN.
+3. ~~Roc Plot για την δική μας υλοποίηση KNN.~~
 ------------------------
 1. ~~Δημιουργία ενός αρχείου tsv από όλα τα txt του fulltext.zip το οποίο θα έχει τις στήλες Id, Title, Content και Category~~
 1. ~~Split του παραπάνω αρχείου σε 2 tsv αρχεία train_set και test_set όπου το test_set να μην έχει το πεδίο Category. Με χρήση της συνάρτησης train_test_split και χρήση stratify parameter.~~
@@ -15,7 +15,7 @@ TO-DOS
     - ~~SVM~~ ~~και πειραματισμός με παραμέτρους εκφώνησης~~
     - ~~Random Forests~~
     - ~~Naive Bayes~~
-    - ~~KNN δική μας υλοποίηση~~ (~~λένε στο e-class ότι θέλουν και από το 10 CV~~ + Roc Plot)
+    - ~~KNN δική μας υλοποίηση~~ (~~λένε στο e-class ότι θέλουν και από το 10 CV~~ ~~ + Roc Plot~~)
 1. ~~Vectorization με:~~
     - ~~BoW (CountVectorizer)~~
     - ~~TfIdf~~

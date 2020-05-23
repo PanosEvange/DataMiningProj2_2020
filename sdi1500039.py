@@ -291,7 +291,7 @@ def makeRocPlot(labelTest, predictions, labelEncoder, mySubplots = None):
         plt.legend(loc="lower right")
 
 def makeRocPlotsCV (clf, trainX, trainY, labelEncoder):
-     # make rocPlots for each fold in 10 CV
+    # make rocPlots for each fold in 10 CV
     f, axs = plt.subplots(5, 2)
     f.set_figheight(30)
     f.set_figwidth(30)
@@ -489,11 +489,45 @@ def vote(neighbors):
         class_counter[neighbor[2]] += 1
     return class_counter.most_common(1)[0][0]
 
+# ‘vote_prob’ is a function like ‘vote’ but returns the probability for all classes (like clf.predict_proba())
+def vote_prob(neighbors):
+    class_counter = Counter()
+    for neighbor in neighbors:
+        class_counter[neighbor[2]] += 1
+    labels, votes = zip(*class_counter.most_common())
+
+    probabilityArray = votesToProbability(class_counter.most_common(), sum(votes))
+
+    return probabilityArray
+
+def votesToProbability(tuplesList, totalVotes):
+
+    # tuplesList is of form [(num1,num2), (num1,num2), ...] where num1 is the label and num2 is the number of votes for this label
+    labelVotesDict = dict(tuplesList)
+    
+    numOfClasses = 5  
+    probabilityArray = []
+
+    for i in range(0,numOfClasses):
+        if i in labelVotesDict: # calculate probability
+            probabilityArray.append(labelVotesDict[i] / totalVotes)
+        else: # this label doesn't exist in the dictionary so its probability is 0
+            probabilityArray.append(0)
+
+    return np.asarray(probabilityArray)
+
+
 # Make a prediction with neighbors
 def predict_classification(training_set, labels, test_instance, k, distance=distance):
     neighbors = get_neighbors(training_set, labels, test_instance, k, distance=distance)
     prediction = vote(neighbors)
     return prediction
+
+# Make a prediction probability with neighbors
+def predict_proba_classification(training_set, labels, test_instance, k, distance=distance):
+    neighbors = get_neighbors(training_set, labels, test_instance, k, distance=distance)
+    prediction_proba = vote_prob(neighbors)
+    return prediction_proba
 
 # kNN Algorithm
 def k_nearest_neighbors(trainX, trainY, testX, num_neighbors):
@@ -503,17 +537,59 @@ def k_nearest_neighbors(trainX, trainY, testX, num_neighbors):
         predictions.append(output)
     return(predictions)
 
+# kNN Algorithm probability predictions
+def k_nearest_neighbors_proba(trainX, trainY, testX, num_neighbors):
+    predictions_proba = list()
+    for row in testX:
+        output = predict_proba_classification(trainX, trainY, row,  num_neighbors, distance=distance )
+        predictions_proba.append(output)
+    return(predictions_proba)
+
 # Evaluate an algorithm using a cross validation split
 # Specific evaluation for our knn algorithm
-def evaluate_algorithm(trainX, trainY, n_folds):
-    scores = list()
+def evaluate_algorithm(trainX, trainY, n_folds, labelEncoder):
+
+    # make rocPlots for each fold in 10 CV
+    f, axs = plt.subplots(5, 2)
+    f.set_figheight(30)
+    f.set_figwidth(30)
+
+    scoresAccuracy = list()
+    scoresPrecision = list()
+    scoresRecall = list()
+    scoresF1 = list()
+
     cv = StratifiedKFold(n_splits=10)
+
+    i = 0
+    z = 0
+    k = 1
 
     for train, test in cv.split(trainX, trainY):
         predictions = k_nearest_neighbors(trainX[train], trainY[train], trainX[test], 100)
         predY = np.asarray(predictions)
-        scores.append(accuracy_score(trainY[test], predY))
+        scoresAccuracy.append(accuracy_score(trainY[test], predY))
+        scoresPrecision.append(precision_score(trainY[test], predY, average='weighted'))
+        scoresRecall.append(recall_score(trainY[test], predY, average='weighted'))
+        scoresF1.append(f1_score(trainY[test], predY, average='weighted'))
+
+        # make roc plot for this fold
+        predictions_proba = k_nearest_neighbors_proba(trainX[train], trainY[train], trainX[test], 100)
+        predY_proba = np.asarray(predictions_proba)
+        makeRocPlot(trainY[test], predY_proba, labelEncoder, axs[i, z])
+
+        axs[i, z].set_title('Roc Plot for fold - {0}'.format(k))
+
+        k += 1
+        if z == 1:
+            i += 1
+            z = 0
+        else:
+            z = 1
+            
+    plt.show()
     
+    scores = {'Accuracy':scoresAccuracy, 'Precision':scoresPrecision, 'Recall':scoresRecall, 'F1':scoresF1}
     return scores
 
 def KnnClassification(trainX, trainY, testX, testY, labelEncoder):
@@ -527,16 +603,24 @@ def KnnClassification(trainX, trainY, testX, testY, labelEncoder):
     print('\n----10 Fold Cross Validation Evaluation----')
     # evaluate algorithm
     n_folds = 10
-    scores = evaluate_algorithm(trainXarray, trainY, n_folds)
-    print('Scores: %s' % scores)
-    print('Mean Accuracy: %.3f%%' % (sum(scores)/float(len(scores))))
-    
+    scores = evaluate_algorithm(trainXarray, trainY, n_folds, labelEncoder)
+    print ('Precision \t %0.2f' % (sum(scores['Precision'])/float(len(scores['Precision']))))
+    print ('Recalls \t %0.2f' % (sum(scores['Recall'])/float(len(scores['Recall']))))
+    print ('F-Measure \t %0.2f' % (sum(scores['F1'])/float(len(scores['F1']))))
+    print('Accuracy: \t %0.2f' % (sum(scores['Accuracy'])/float(len(scores['Accuracy'])))) 
 
     # Classification_report
     predictions = k_nearest_neighbors(trainXarray, trainY, testXarray, 100)
     predY = np.asarray(predictions)
     print('\n----Report for predictions on test dataset----')
     print(classification_report(testY, predY, target_names=list(labelEncoder.classes_)))
+
+    predictions_proba = k_nearest_neighbors_proba(trainXarray, trainY, testXarray, 100)
+    predY_proba = np.asarray(predictions_proba)
+
+    print('\n----ROC plot for predictions on test dataset----')
+    makeRocPlot(testY, predY_proba, labelEncoder)
+    plt.show()
 
     return accuracy_score(testY, predY)
 
@@ -928,3 +1012,22 @@ vectorsTrainX = [np.array(f) for f in trainX]
 labels, clusters = KmeansClustering(vectorsTrainX, 5, 40)
 principalComponentAnalysis(2, trainX, labels, clusters)
 # endregion
+
+# **Σχόλια και παρατηρήσεις**
+# - Έχουν υλοποιηθεί όλα τα ζητούμενα της εκφώνησης εκτός από το bonus των μεθόδων συμπίεσης. Υλοποιήθηκε μόνο η PCA.
+# - Το beat the benchmark bonus έχει υλοποιηθεί.
+# - Όσον αφορά το παραπάνω, το score για max_features=1000 στους Vectorizers είναι ήδη πολύ υψηλό, οπότε δεν υπάρχουν
+# πολλά περιθώρια βελτίωσης και επομένως δεν βλέπουμε μεγάλη διαφορά. Για το λόγο αυτό γίνεται σύγκριση και για 
+# max_features=100 όπου εκεί η διαφορά είναι πιο φανερή.
+# - Όσον αφορά την χρήση της GridSearchCV για την εύρεση των καλύτερων παραμέτρων στον αλγόριθμο SVM, την χρησιμοποιούμε
+# μια φορά για demonstration διότι η χρήση του καθυστερεί τον χρόνο εκτέλεσης του προγράμματος μια και η λογική πίσω
+# από αυτό είναι ο brute force συνδυασμός των διάφορων παραμέτρων.
+# - Στο 10 fold cross validation παρουσιάζεται το roc plot για κάθε fold.
+# - Η υλοποίηση του αλγορίθμου KNN έγινε με βάση τα link που αναφέρονται
+#  (https://towardsdatascience.com/k-nearest-neighbor-classifier-from-scratch-in-python-698e3de97063 
+# και https://machinelearningmastery.com/tutorial-to-implement-k-nearest-neighbors-in-python-from-scratch/).
+# Παρόλα αυτά χρειάστηκαν να γίνουν πάρα πολλές αλλαγές/επεμβάσεις καθώς και γράψιμο νέου κώδικα.
+# - Ιδιαίτερα αξίζει να σημειωθεί η υλοποίηση της συνάρτησης που υπολογίζει τις πιθανότητες (k_nearest_neighbors_proba()) 
+# καθώς και της συνάρτησεις με το 10 fold cross validation evaluation οι οποίες δεν υπάρχουν αυτούσιες στα προαναφερθέντα links.
+# - Όσον αφορά την εμφάνιση των πραγματικών κλάσεων των κειμένων στο clustering χρησιμοποιήθηκαν σχήματα. Η αντιστοίχηση των 
+# σχημάτων βρίσκεται στο πάνω δεξί μέρος του διαγράμματος.
