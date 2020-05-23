@@ -64,6 +64,7 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 # clustering
 from nltk.cluster import KMeansClusterer, cosine_distance
 from sklearn.decomposition import PCA
+from sklearn.decomposition import TruncatedSVD
 
 # for data exploration
 import os
@@ -879,6 +880,7 @@ resultsCompareDataFrame
 
 def KmeansClustering(trainX, numberOfClusters, numberOfRepeats):
     # init cluster with trainX
+    # example taken from https://www.nltk.org/_modules/nltk/cluster/kmeans.html#demo
     clusterer = KMeansClusterer(numberOfClusters, cosine_distance, initial_means=None, repeats=numberOfRepeats)
     assigned_clusters = clusterer.cluster(trainX, assign_clusters=True)
     return clusterer, assigned_clusters
@@ -925,6 +927,48 @@ def principalComponentAnalysis(nComponents, trainX, labels, clusters):
 
     plt.show()
 
+# - #### Compression using SVD method
+
+def singularValueDecomposition(nComponents, trainX, labels, clusters):
+    # reduce the features to 2D
+    random_state = 0 
+    svd = TruncatedSVD(n_components=nComponents, random_state=random_state)
+
+    #reduced_features = svd.fit_transform(trainX.toarray())
+    reduced_features = svd.fit_transform(trainX)
+
+    # reduce the cluster centers to 2D
+    reduced_cluster_centers = svd.transform(labels._means)
+
+    # assign specific marker shape for each true category
+    markers = ["o" , "v" , "P" , "s", "*"]
+    colors = ["tab:blue" , "tab:orange" , "tab:green" , "tab:red", "tab:purple"]
+
+    specificMarkers = list()
+    specificColors = list()
+
+    for i in range(0,trainX.shape[0]):
+        specificMarkers.append(markers[trainY[i]])
+        specificColors.append(colors[clusters[i]])
+
+    plt.figure(figsize=(12, 12))
+ 
+    xArray = reduced_features[:,0]
+    yArray = reduced_features[:,1]
+
+    for i in range(0,len(clusters)):
+        plt.scatter(xArray[i], yArray[i], marker=specificMarkers[i], c=specificColors[i])
+
+    plt.scatter(reduced_cluster_centers[:, 0], reduced_cluster_centers[:,1], marker='x', s=150, c='b')
+    
+    patchList = []
+    for i in range(0,len(markers)):
+        patchList.append(plt.plot([],[], color='black', marker=markers[i], label=le.classes_[i], ls="")[0])
+
+    plt.legend(handles=patchList)
+
+    plt.show()
+
 # - #### Bag-of-words vectorization
 
 # region
@@ -935,7 +979,10 @@ trainX = bowVectorizer.fit_transform(trainDataSet['CONTENT'])
 # convert trainX into list of arrays
 vectorsTrainX = [np.array(f) for f in trainX.toarray()]
 labels, clusters = KmeansClustering(vectorsTrainX, 5, 20)
+print('\n-------------Kmeans Clustering with Bag-of-words Vectorization compressing using PCA method-------------')
 principalComponentAnalysis(2, trainX.toarray(), labels, clusters)
+print('\n-------------Kmeans Clustering with Bag-of-words Vectorization compressing using SVD method-------------')
+singularValueDecomposition(2, trainX.toarray(), labels, clusters)
 # endregion
 
 # - #### Tf-idf vectorization
@@ -948,7 +995,10 @@ trainX = tfIdfVectorizer.fit_transform(trainDataSet['CONTENT'])
 # convert trainX into list of arrays
 vectorsTrainX = [np.array(f) for f in trainX.toarray()]
 labels, clusters = KmeansClustering(vectorsTrainX, 5, 40)
+print('\n-------------Kmeans Clustering with TfIdf Vectorization compressing using PCA method-------------')
 principalComponentAnalysis(2, trainX.toarray(), labels, clusters)
+print('\n-------------Kmeans Clustering with TfIdf Vectorization compressing using SVD method-------------')
+singularValueDecomposition(2, trainX.toarray(), labels, clusters)
 # endregion
 
 #   - #### Word embeddings vectorization
@@ -1010,7 +1060,10 @@ trainX = wordEmbeddingsVectorizer(trainDataSet)
 vectorsTrainX = [np.array(f) for f in trainX]
 
 labels, clusters = KmeansClustering(vectorsTrainX, 5, 40)
+print('\n-------------Kmeans Clustering with Word embeddings Vectorization compressing using PCA method-------------')
 principalComponentAnalysis(2, trainX, labels, clusters)
+print('\n-------------Kmeans Clustering with Word embeddings Vectorization compressing using SVD method-------------')
+singularValueDecomposition(2, trainX, labels, clusters)
 # endregion
 
 # **Σχόλια και παρατηρήσεις**
