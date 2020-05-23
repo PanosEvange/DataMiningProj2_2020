@@ -15,7 +15,7 @@ TO-DOS
     - ~~SVM~~ ~~και πειραματισμός με παραμέτρους εκφώνησης~~
     - ~~Random Forests~~
     - ~~Naive Bayes~~
-    - ~~KNN δική μας υλοποίηση~~ (~~λένε στο e-class ότι θέλουν και από το 10 CV~~ ~~ + Roc Plot~~)
+    - ~~KNN δική μας υλοποίηση~~ (~~λένε στο e-class ότι θέλουν και από το 10 CV~~ ~~+ Roc Plot~~)
 1. ~~Vectorization με:~~
     - ~~BoW (CountVectorizer)~~
     - ~~TfIdf~~
@@ -38,5 +38,5 @@ TO-DOS
         - ~~Pre-trained word embedings ένα από τα 3 προτεινόμενα της εκφώνησης~~
     - Οπτικοποίηση μέ:
         - ~~PCA~~
-        - SVD
+        - ~~SVD~~
         - ICA
